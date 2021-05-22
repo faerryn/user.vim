@@ -1,3 +1,8 @@
+if exists("g:loaded_user")
+    finish
+endif
+let g:loaded_user = 1
+
 let s:path = expand("~/.vim").."/pack/user/"
 let s:packs = {}
 let s:config_queue = []
