@@ -32,7 +32,7 @@ function! user#use(args) abort
 
     let l:pack.after = []
     if get(a:args, "after", v:null)
-        if type(a:args.after) == "string"
+        if type(a:args.after) == v:t_string
             let l:pack.after = [ a:args.after ]
         else
             let l:pack.after = a:args.after
