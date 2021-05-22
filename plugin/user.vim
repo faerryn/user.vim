@@ -50,16 +50,28 @@ function! user#use(args) abort
 endfunction
 
 function! user#startup() abort
-    call s:await_jobs()
-    call s:do_config_queue()
+    let l:counter = 0
+    while !empty(s:config_queue) && l:counter < len(s:config_queue)
+        let l:pack = remove(s:config_queue, 0)
+        if s:can_config(l:pack)
+            call s:config(l:pack)
+            let l:counter = 0
+        else
+            call add(s:config_queue, l:pack)
+            let l:counter = l:counter + 1
+        endif
+    endwhile
 endfunction
 
 function! user#update() abort
     for l:pack in values(s:packs)
-        let l:pack.hash = s:git_head_hash(l:pack)
+        let l:old_hash = s:git_head_hash(l:pack)
         call system("git -C "..fnameescape(l:pack.install_path).." pull")
-        """ TODO async jobs
-        let l:pack.job = "a fun job"
+        let l:new_hash = s:git_head_hash(l:pack)
+
+        if l:old_hash != l:new_hash && type(l:pack.update) == v:t_func
+            call l:pack.update()
+        end
     endfor
 endfunction
 
@@ -79,10 +91,10 @@ function! s:install(pack) abort
     let l:command = l:command..fnameescape(a:pack.repo).." "..fnameescape(a:pack.install_path)
 
     call system(l:command)
-    """ TODO async jobs
-    let a:pack.job = "a fun job"
-
-    let a:pack.newly_installed = v:true
+    call s:gen_helptags(l:pack)
+    if type(l:pack.install) == v:t_func
+        call l:pack.install()
+    endif
 endfunction
 
 function! s:request(pack) abort
@@ -109,26 +121,8 @@ function! s:request(pack) abort
     call add(s:config_queue, a:pack)
 endfunction
 
-function! s:await_jobs() abort
-    for l:pack in values(s:packs)
-        if has_key(l:pack, "job")
-            """ TODO async jobs
-            silent! execute "helptags" fnameescape(l:pack.install_path).."/doc"
-            let l:pack.job = v:null
-
-            if has_key(l:pack, "newly_installed") && type(l:pack.install) == v:t_func
-                call l:pack.install()
-            endif
-
-            let l:hash = s:git_head_hash(l:pack)
-            if has_key(l:pack, "hash") && l:pack.hash != l:hash
-                if type(l:pack.update) == v:t_func
-                    call l:pack.update()
-                end
-                let a:pack.hash = l:hash
-            endif
-        endif
-    endfor
+function! s:gen_helptags(pack) abort
+    silent! execute "helptags" fnameescape(a:pack.install_path).."/doc"
 endfunction
 
 function! s:config(pack) abort
@@ -154,18 +148,4 @@ function! s:can_config(pack) abort
         endif
     endfor
     return v:true
-endfunction
-
-function! s:do_config_queue() abort
-    let l:counter = 0
-    while !empty(s:config_queue) && l:counter < len(s:config_queue)
-        let l:pack = remove(s:config_queue, 0)
-        if s:can_config(l:pack)
-            call s:config(l:pack)
-            let l:counter = 0
-        else
-            call add(s:config_queue, l:pack)
-            let l:counter = l:counter + 1
-        endif
-    endwhile
 endfunction
