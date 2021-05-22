@@ -31,7 +31,7 @@ function! user#use(args) abort
     let l:pack.update = get(a:args, "update", v:null)
 
     let l:pack.after = []
-    if get(a:args, "after", v:null)
+    if has_key(a:args, "after")
         if type(a:args.after) == v:t_string
             let l:pack.after = [ a:args.after ]
         else
@@ -81,7 +81,7 @@ function! s:install(pack) abort
 endfunction
 
 function! s:request(pack) abort
-    if get(s:packs, a:pack.name, v:null)
+    if has_key(s:packs, a:pack.name)
         throw pack.name.." is requested more than once"
     endif
     let s:packs[a:pack.name] = a:pack
@@ -106,17 +106,17 @@ endfunction
 
 function! s:await_jobs() abort
     for l:pack in values(s:packs)
-        if get(l:pack, "job", v:null)
+        if has_key(l:pack, "job")
             """ TODO async jobs
             silent! execute "helptags" fnameescape(l:pack.install_path).."/doc"
             let l:pack.job = v:null
 
-            if get(l:pack, "newly_installed", v:null) && type(l:pack.install) == v:t_func
+            if has_key(l:pack, "newly_installed") && type(l:pack.install) == v:t_func
                 call l:pack.install()
             endif
 
             let l:hash = s:git_head_hash(l:pack)
-            if get(l:pack, "hash", v:null) && l:pack.hash != l:hash
+            if has_key(l:pack, "hash") && l:pack.hash != l:hash
                 if type(l:pack.update) == v:t_func
                     call l:pack.update()
                 end
@@ -129,7 +129,7 @@ endfunction
 function! s:config(pack) abort
     execute "packadd" fnameescape(a:pack.packadd_path)
 
-    if get(v:, "vim_did_enter", v:null)
+    if get(v:, "vim_did_enter", v:false)
         for l:after_source in split(glob(a:pack.install_path.."/after/plugin/**/*.vim"), "\n")
             execute "source" fnameescape(l:after_source)
         endfor
@@ -144,7 +144,7 @@ endfunction
 
 function! s:can_config(pack) abort
     for l:after in a:pack.after
-        if !s:config_done[l:after]
+        if !has_key(s:config_done, l:after)
             return v:false
         endif
     endfor
