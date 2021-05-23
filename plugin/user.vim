@@ -5,8 +5,6 @@ let g:loaded_user = 1
 
 let s:path = expand("~/.vim").."/pack/user/"
 let s:packs = {}
-let s:config_queue = []
-let s:config_done = {}
 
 function! user#use(args) abort
     if type(a:args) == v:t_string
@@ -25,9 +23,6 @@ function! user#use(args) abort
 
     let l:pack.subdir = get(a:args, "subdir", "")
 
-    let l:pack.init = get(a:args, "init", v:null)
-    let l:pack.config = get(a:args, "config", v:null)
-
     let l:pack.install = get(a:args, "install", v:null)
     let l:pack.update = get(a:args, "update", v:null)
 
@@ -41,6 +36,8 @@ function! user#update() abort
         let l:old_hash = s:git_head_hash(l:pack)
         call system("git -C "..fnameescape(l:pack.install_path).." pull")
         let l:new_hash = s:git_head_hash(l:pack)
+
+        call s:gen_helptags(l:pack)
 
         if l:old_hash != l:new_hash && type(l:pack.update) == v:t_func
             call l:pack.update()
@@ -76,10 +73,6 @@ function! s:request(pack) abort
     endif
     let s:packs[a:pack.name] = a:pack
 
-    if type(a:pack.init) == v:t_string
-        call a:pack.init()
-    endif
-
     let l:install_path = a:pack.name
     if type(a:pack.branch) == v:t_string
         let l:install_path = l:install_path.."/branch/"..a:pack.branch
@@ -91,14 +84,14 @@ function! s:request(pack) abort
     let a:pack.install_path = s:path.."/opt/"..l:install_path
 
     call s:install(a:pack)
-    call s:config(a:pack)
+    call s:packadd(a:pack)
 endfunction
 
 function! s:gen_helptags(pack) abort
     silent! execute "helptags" fnameescape(a:pack.install_path).."/doc"
 endfunction
 
-function! s:config(pack) abort
+function! s:packadd(pack) abort
     execute "packadd" fnameescape(a:pack.packadd_path)
 
     if get(v:, "vim_did_enter", v:false)
@@ -106,10 +99,4 @@ function! s:config(pack) abort
             execute "source" fnameescape(l:after_source)
         endfor
     end
-
-    if type(a:pack.config) == v:t_func
-        call a:pack.config()
-    end
-
-    let s:config_done[a:pack.name] = v:true
 endfunction
