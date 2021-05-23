@@ -91,9 +91,9 @@ function! s:install(pack) abort
     let l:command = l:command..fnameescape(a:pack.repo).." "..fnameescape(a:pack.install_path)
 
     call system(l:command)
-    call s:gen_helptags(l:pack)
-    if type(l:pack.install) == v:t_func
-        call l:pack.install()
+    call s:gen_helptags(a:pack)
+    if type(a:pack.install) == v:t_func
+        call a:pack.install()
     endif
 endfunction
 
