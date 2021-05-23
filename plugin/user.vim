@@ -91,7 +91,7 @@ function! s:request(pack) abort
     let a:pack.install_path = s:path.."/opt/"..l:install_path
 
     call s:install(a:pack)
-    call s:config(l:pack)
+    call s:config(a:pack)
 endfunction
 
 function! s:gen_helptags(pack) abort
