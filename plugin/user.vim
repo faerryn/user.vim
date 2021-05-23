@@ -8,10 +8,6 @@ let s:packs = {}
 let s:config_queue = []
 let s:config_done = {}
 
-function! user#setup() abort
-    autocmd VimEnter * ++once call user#startup()
-endfunction
-
 function! user#use(args) abort
     if type(a:args) == v:t_string
         return user#use({ "name": a:args })
@@ -35,32 +31,9 @@ function! user#use(args) abort
     let l:pack.install = get(a:args, "install", v:null)
     let l:pack.update = get(a:args, "update", v:null)
 
-    let l:pack.after = []
-    if has_key(a:args, "after")
-        if type(a:args.after) == v:t_string
-            let l:pack.after = [ a:args.after ]
-        else
-            let l:pack.after = a:args.after
-        end
-    endif
-
     let l:pack.repo = get(a:args, "repo", "https://github.com/"..l:pack.name..".git")
 
     call s:request(l:pack)
-endfunction
-
-function! user#startup() abort
-    let l:counter = 0
-    while !empty(s:config_queue) && l:counter < len(s:config_queue)
-        let l:pack = remove(s:config_queue, 0)
-        if s:can_config(l:pack)
-            call s:config(l:pack)
-            let l:counter = 0
-        else
-            call add(s:config_queue, l:pack)
-            let l:counter = l:counter + 1
-        endif
-    endwhile
 endfunction
 
 function! user#update() abort
@@ -118,7 +91,7 @@ function! s:request(pack) abort
     let a:pack.install_path = s:path.."/opt/"..l:install_path
 
     call s:install(a:pack)
-    call add(s:config_queue, a:pack)
+    call s:config(l:pack)
 endfunction
 
 function! s:gen_helptags(pack) abort
@@ -139,13 +112,4 @@ function! s:config(pack) abort
     end
 
     let s:config_done[a:pack.name] = v:true
-endfunction
-
-function! s:can_config(pack) abort
-    for l:after in a:pack.after
-        if !has_key(s:config_done, l:after)
-            return v:false
-        endif
-    endfor
-    return v:true
 endfunction
